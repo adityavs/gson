@@ -20,12 +20,12 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
-import java.util.LinkedList;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
@@ -40,6 +40,7 @@ import java.util.concurrent.ConcurrentSkipListMap;
 
 import com.google.gson.InstanceCreator;
 import com.google.gson.JsonIOException;
+import com.google.gson.internal.reflect.ReflectionAccessor;
 import com.google.gson.reflect.TypeToken;
 
 /**
@@ -47,6 +48,7 @@ import com.google.gson.reflect.TypeToken;
  */
 public final class ConstructorConstructor {
   private final Map<Type, InstanceCreator<?>> instanceCreators;
+  private final ReflectionAccessor accessor = ReflectionAccessor.getInstance();
 
   public ConstructorConstructor(Map<Type, InstanceCreator<?>> instanceCreators) {
     this.instanceCreators = instanceCreators;
@@ -98,7 +100,7 @@ public final class ConstructorConstructor {
     try {
       final Constructor<? super T> constructor = rawType.getDeclaredConstructor();
       if (!constructor.isAccessible()) {
-        constructor.setAccessible(true);
+        accessor.makeAccessible(constructor);
       }
       return new ObjectConstructor<T>() {
         @SuppressWarnings("unchecked") // T is the same raw type as is requested
@@ -163,7 +165,7 @@ public final class ConstructorConstructor {
       } else if (Queue.class.isAssignableFrom(rawType)) {
         return new ObjectConstructor<T>() {
           @Override public T construct() {
-            return (T) new LinkedList<Object>();
+            return (T) new ArrayDeque<Object>();
           }
         };
       } else {
@@ -224,7 +226,7 @@ public final class ConstructorConstructor {
           return (T) newInstance;
         } catch (Exception e) {
           throw new RuntimeException(("Unable to invoke no-args constructor for " + type + ". "
-              + "Register an InstanceCreator with Gson for this type may fix this problem."), e);
+              + "Registering an InstanceCreator with Gson for this type may fix this problem."), e);
         }
       }
     };
